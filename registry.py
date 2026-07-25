@@ -66,6 +66,13 @@ class Registry(Generic[K, V]):
     def deserialize_value(self, s: str) -> V:
         return s  # type: ignore
 
+    def serialize_bookkeeping(self, bk: BookKeeping) -> str:
+        return f"{bk.created} {bk.last_seen} {bk.changed}"
+
+    def deserialize_bookkeeping(self, s: str) -> BookKeeping:
+        parts = s.split(' ')
+        return BookKeeping(created=int(parts[0]), last_seen=int(parts[1]), changed=int(parts[2]))
+
     def _load(self):
         if not os.path.exists(self.config.filename):
             if self.config.allow_missing_file:
@@ -91,50 +98,45 @@ class Registry(Generic[K, V]):
         for _ in range(size):
             if idx >= len(lines):
                 break
-            key_str = lines[idx]
-            idx += 1
-            if idx >= len(lines):
-                break
-            
-            # Tuple: BookKeeping, Value
-            bk_created = int(lines[idx])
-            idx += 1
-            bk_last_seen = int(lines[idx])
-            idx += 1
-            bk_changed = int(lines[idx])
+            line = lines[idx]
             idx += 1
             
-            value_str = lines[idx]
-            idx += 1
+            parts = line.split(' ', 4)
+            if len(parts) < 4:
+                continue
+                
+            key_str = parts[0]
+            bk_str = f"{parts[1]} {parts[2]} {parts[3]}"
+            value_str = parts[4] if len(parts) > 4 else ""
             
             key = self.deserialize_key(key_str)
             value = self.deserialize_value(value_str)
-            bk = BookKeeping(created=bk_created, last_seen=bk_last_seen, changed=bk_changed)
+            bk = self.deserialize_bookkeeping(bk_str)
             self.entries[key] = (bk, value)
+    def _save_header(self, f):
+        f.write("GKVR\n")
+        f.write("1\n")
+        
+        if len(self.entries) > 0:
+            first_val = next(iter(self.entries.values()))[1]
+            content_version = self.get_serialization_version(first_val)
+        else:
+            content_version = 1
+            
+        f.write(f"{content_version}\n")
+        f.write(f"{len(self.entries)}\n")
+
+    def _save_content(self, f):
+        for key, (bk, value) in self.entries.items():
+            f.write(f"{self.serialize_key(key)} {self.serialize_bookkeeping(bk)} {self.serialize_value(value)}\n")
 
     def save(self):
         if not self.config.is_active:
             return
             
         with open(self.config.filename, 'w', encoding='utf-8') as f:
-            f.write("GKVR\n")
-            f.write("1\n")
-            
-            if len(self.entries) > 0:
-                first_val = next(iter(self.entries.values()))[1]
-                content_version = self.get_serialization_version(first_val)
-            else:
-                content_version = 1
-                
-            f.write(f"{content_version}\n")
-            f.write(f"{len(self.entries)}\n")
-            
-            for key, (bk, value) in self.entries.items():
-                f.write(f"{self.serialize_key(key)}\n")
-                f.write(f"{bk.created}\n")
-                f.write(f"{bk.last_seen}\n")
-                f.write(f"{bk.changed}\n")
-                f.write(f"{self.serialize_value(value)}\n")
+            self._save_header(f)
+            self._save_content(f)
 
     def has(self, key: K) -> bool:
         return key in self.entries
