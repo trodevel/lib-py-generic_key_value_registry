@@ -73,18 +73,9 @@ class Registry(Generic[K, V]):
         parts = s.split(' ')
         return BookKeeping(created=int(parts[0]), last_seen=int(parts[1]), changed=int(parts[2]))
 
-    def _load(self):
-        if not os.path.exists(self.config.filename):
-            if self.config.allow_missing_file:
-                return
-            else:
-                raise FileNotFoundError(f"Registry file missing: {self.config.filename}")
-                
-        with open(self.config.filename, 'r', encoding='utf-8') as f:
-            lines = [line.rstrip('\n') for line in f]
-            
+    def _load_header(self, lines: list[str]) -> Tuple[int, int]:
         if len(lines) < 4:
-            return
+            return 0, 0
             
         header = lines[0]
         if header != "GKVR":
@@ -93,8 +84,10 @@ class Registry(Generic[K, V]):
         # gkvr_version = int(lines[1])
         # content_version = int(lines[2])
         size = int(lines[3])
-        
-        idx = 4
+        return 4, size
+
+    def _load_content(self, lines: list[str], start_idx: int, size: int):
+        idx = start_idx
         for _ in range(size):
             if idx >= len(lines):
                 break
@@ -113,6 +106,20 @@ class Registry(Generic[K, V]):
             value = self.deserialize_value(value_str)
             bk = self.deserialize_bookkeeping(bk_str)
             self.entries[key] = (bk, value)
+
+    def _load(self):
+        if not os.path.exists(self.config.filename):
+            if self.config.allow_missing_file:
+                return
+            else:
+                raise FileNotFoundError(f"Registry file missing: {self.config.filename}")
+                
+        with open(self.config.filename, 'r', encoding='utf-8') as f:
+            lines = [line.rstrip('\n') for line in f]
+            
+        start_idx, size = self._load_header(lines)
+        if size > 0:
+            self._load_content(lines, start_idx, size)
     def _save_header(self, f):
         f.write("GKVR\n")
         f.write("1\n")
