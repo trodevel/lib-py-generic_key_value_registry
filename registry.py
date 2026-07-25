@@ -17,7 +17,7 @@ class Config:
 class BookKeeping:
     created: int
     last_seen: int
-    changed: bool
+    changed: int
 
 class Registry(Generic[K, V]):
     def __init__(self, config: Config):
@@ -25,6 +25,31 @@ class Registry(Generic[K, V]):
         self.entries: Dict[K, Tuple[BookKeeping, V]] = {}
         if self.config.is_active:
             self._load()
+
+    def create_value(self, *args, **kwargs) -> V:
+        raise NotImplementedError
+
+    def update_value(self, value: V, timestamp: int, *args, **kwargs):
+        raise NotImplementedError
+
+    def add_or_update(self, key: K, timestamp: int, *args, **kwargs):
+        if key not in self.entries:
+            bk = BookKeeping(created=timestamp, last_seen=timestamp, changed=timestamp)
+            val = self.create_value(*args, **kwargs)
+            self.update_value(val, timestamp, *args, **kwargs)
+            self.entries[key] = (bk, val)
+        else:
+            bk, val = self.entries[key]
+            
+            if timestamp < bk.created:
+                bk.created = timestamp
+            if timestamp > bk.last_seen:
+                bk.last_seen = timestamp
+                
+            self.update_value(val, timestamp, *args, **kwargs)
+            
+            if timestamp > bk.changed:
+                bk.changed = timestamp
 
     def get_serialization_version(self, value: V) -> int:
         return 1
@@ -76,8 +101,7 @@ class Registry(Generic[K, V]):
             idx += 1
             bk_last_seen = int(lines[idx])
             idx += 1
-            bk_changed_str = lines[idx]
-            bk_changed = (bk_changed_str == "True")
+            bk_changed = int(lines[idx])
             idx += 1
             
             value_str = lines[idx]
