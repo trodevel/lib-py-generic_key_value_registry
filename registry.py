@@ -5,19 +5,8 @@ from dataclasses import dataclass
 K = TypeVar('K')
 V = TypeVar('V')
 
-@dataclass
-class Config:
-    is_active: bool
-    allow_missing_file: bool
-    filename: str
-    must_expire_keys: bool
-    expiration_period_days: int
-
-@dataclass
-class BookKeeping:
-    created: int
-    last_seen: int
-    changed: int
+from registry_config import Config
+from registry_book_keeping import BookKeeping
 
 class Registry(Generic[K, V]):
     def __init__(self, config: Config):
@@ -147,6 +136,25 @@ class Registry(Generic[K, V]):
 
     def has(self, key: K) -> bool:
         return key in self.entries
+
+    def delete(self, key: K):
+        if key in self.entries:
+            del self.entries[key]
+
+    def expire_keys(self, current_timestamp: int):
+        if not self.config.must_expire_keys:
+            return
+            
+        expiration_secs = self.config.expiration_period_days * 86400
+        threshold = current_timestamp - expiration_secs
+        
+        keys_to_delete = [
+            key for key, (bk, value) in self.entries.items()
+            if bk.last_seen < threshold
+        ]
+        
+        for key in keys_to_delete:
+            self.delete(key)
 
     def get_all_entries(self) -> Dict[K, Tuple[BookKeeping, V]]:
         return self.entries
