@@ -38,7 +38,7 @@ The `Registry` inherently maintains metadata for every key. This `BookKeeping` s
 - `last_seen`: The epoch timestamp when the entry was most recently seen.
 - `changed`: The epoch timestamp when the state of the entry last changed.
 
-The `add_or_update` method handles the logic for appropriately updating these timestamps on every transaction.
+The `add_or_update_ts` method handles the logic for appropriately updating these timestamps on every transaction.
 
 ---
 
@@ -59,7 +59,7 @@ Subclasses are expected to override or customize these operations:
 
 ### Operations & Lifecycle Methods
 
-* `add_or_update(key: K, timestamp: int, *args, **kwargs)`: Adds a key if missing or updates metadata (`created`, `last_seen`, `changed`) and value payload.
+* `add_or_update_ts(key: K, timestamp: int, *args, **kwargs)`: Adds a key if missing or updates metadata (`created`, `last_seen`, `changed`) and value payload.
 * `has(key: K) -> bool`: Checks whether a given key exists in the registry.
 * `delete(key: K)`: Removes a key-value entry from memory.
 * `expire_keys(current_timestamp: int)`: Purges entries whose `last_seen` timestamp exceeds `expiration_period_days` (if `must_expire_keys` is enabled in configuration).
@@ -140,6 +140,6 @@ config = Config(
 )
 
 registry = TypeCounterRegistry(config)
-registry.add_or_update("item_key", timestamp=1700000000, type_id=1)
+registry.add_or_update_ts("item_key", timestamp=1700000000, type_id=1)
 registry.save()
 ```

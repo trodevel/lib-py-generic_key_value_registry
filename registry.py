@@ -25,7 +25,7 @@ class Registry(Generic[K, V]):
     def update_value(self, value: V, timestamp: int, *args, **kwargs):
         raise NotImplementedError
 
-    def add_or_update(self, key: K, timestamp: int, *args, **kwargs):
+    def add_or_update_ts(self, key: K, timestamp: int, *args, **kwargs):
         if key not in self.entries:
             bk = BookKeeping(created=timestamp, last_seen=timestamp, changed=timestamp)
             val = self.create_value(*args, **kwargs)
