@@ -61,6 +61,7 @@ Subclasses are expected to override or customize these operations:
 
 * `add_or_update_ts(key: K, timestamp: int, *args, **kwargs)`: Adds a key if missing or updates metadata (`created`, `last_seen`, `changed`) and value payload.
 * `has(key: K) -> bool`: Checks whether a given key exists in the registry.
+* `get(key: K) -> V`: Returns the value for `key` without `BookKeeping` metadata. Raises a `KeyError` if the key is not found.
 * `delete(key: K)`: Removes a key-value entry from memory.
 * `expire_keys(current_timestamp: int)`: Purges entries whose `last_seen` timestamp exceeds `expiration_period_days` (if `must_expire_keys` is enabled in configuration).
 * `get_all_entries() -> Dict[K, Tuple[BookKeeping, V]]`: Returns the complete dictionary of entries mapping keys to `(BookKeeping, Value)` tuples.
@@ -115,8 +116,7 @@ This guarantees that fields safely remain on the same line and don't break the s
 To use the Registry, subclass it and implement the initialization and update hooks for your specific type:
 
 ```python
-from registry import Registry
-from registry_config import Config
+from generic_key_value_registry import Registry, Config
 from counter_stat import CounterStat
 
 class TypeCounterRegistry(Registry[str, CounterStat]):

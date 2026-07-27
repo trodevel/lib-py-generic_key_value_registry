@@ -141,6 +141,11 @@ class Registry(Generic[K, V]):
     def has(self, key: K) -> bool:
         return key in self.entries
 
+    def get(self, key: K) -> V:
+        if key not in self.entries:
+            raise KeyError(f"Key '{key}' not found in registry")
+        return self.entries[key][1]
+
     def delete(self, key: K):
         if key in self.entries:
             del self.entries[key]
