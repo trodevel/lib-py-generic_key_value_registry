@@ -5,8 +5,12 @@ from dataclasses import dataclass
 K = TypeVar('K')
 V = TypeVar('V')
 
-from registry_config import Config
-from registry_book_keeping import BookKeeping
+try:
+    from .registry_config import Config
+    from .registry_book_keeping import BookKeeping
+except ImportError:
+    from registry_config import Config
+    from registry_book_keeping import BookKeeping
 
 class Registry(Generic[K, V]):
     def __init__(self, config: Config):
