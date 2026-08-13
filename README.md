@@ -55,7 +55,7 @@ Subclasses are expected to override or customize these operations:
 * `serialize_key(key: K) -> str`: Converts key to string (defaults to `str(key)`).
 * `deserialize_key(s: str) -> K`: Converts string back to key object.
 * `serialize_value(value: V) -> str`: Converts value to string (defaults to `str(value)`).
-* `deserialize_value(s: str) -> V`: Converts string back to value object.
+* `deserialize_value(version: int, s: str) -> V`: Converts string back to value object given a content serialization version.
 * `serialize_bookkeeping(bk: BookKeeping) -> str`: Converts `BookKeeping` timestamps to space-delimited string (`"created last_seen changed"`).
 * `deserialize_bookkeeping(s: str) -> BookKeeping`: Restores `BookKeeping` object from space-delimited string.
 
@@ -95,7 +95,7 @@ In this Python version, these operations are provided as virtual "hook" methods 
 - `serialize_key(key: K) -> str`
 - `deserialize_key(s: str) -> K`
 - `serialize_value(value: V) -> str`
-- `deserialize_value(s: str) -> V`
+- `deserialize_value(version: int, s: str) -> V`
 - `get_serialization_version(value: V) -> int`
 
 ### String Codec
@@ -165,13 +165,15 @@ class ContactRegistry(Registry[str, Contact]):
             "age": value.age
         })
 
-    def deserialize_value(self, s: str) -> Contact:
-        d = json.loads(s)
-        return Contact(
-            first_name=d.get("first_name", ""),
-            last_name=d.get("last_name", ""),
-            age=d.get("age", 0)
-        )
+    def deserialize_value(self, version: int, s: str) -> Contact:
+        if version == 1:
+            d = json.loads(s)
+            return Contact(
+                first_name=d.get("first_name", ""),
+                last_name=d.get("last_name", ""),
+                age=d.get("age", 0)
+            )
+        raise ValueError(f"Unknown version: {version}")
 
 # Instantiation with config
 config = Config(
