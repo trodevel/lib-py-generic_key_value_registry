@@ -31,14 +31,17 @@ class Registry(Generic[K, V]):
     # ...
 ```
 
-### BookKeeping (Metadata)
+### BookKeeping (Metadata) & UpdateStatus
 
 The `Registry` inherently maintains metadata for every key. This `BookKeeping` structure is purely internal and should not be operated on directly by "user" classes.
 - `created`: The epoch timestamp when the entry was first seen.
 - `last_seen`: The epoch timestamp when the entry was most recently seen.
-- `changed`: The epoch timestamp when the state of the entry last changed.
+- `changed`: The epoch timestamp when the state of the entry last changed (updated only if `_update_value()` returns `True`).
 
-The `add_or_update_ts` method handles the logic for appropriately updating these timestamps on every transaction.
+The `add_or_update_ts` method handles the logic for appropriately updating these timestamps on every transaction and returns an `UpdateStatus` enum:
+- `UpdateStatus.ADDED`: The key was not present and has been added.
+- `UpdateStatus.EXISTING_UPDATED`: The key existed and `_update_value()` modified the value (`bk.changed` updated).
+- `UpdateStatus.EXISTING_NOT_UPDATED`: The key existed but `_update_value()` returned `False` (`bk.changed` not updated).
 
 ---
 
@@ -47,7 +50,7 @@ The `add_or_update_ts` method handles the logic for appropriately updating these
 ### Abstract / Hook Methods
 Subclasses are expected to override or customize these operations:
 
-* `_update_value(value: V, new_value: V)`: Private method to update an existing value instance.
+* `_update_value(value: V, new_value: V) -> bool`: Private method to update an existing value instance. Returns `True` if any field was changed, `False` otherwise.
 * `get_serialization_version(value: V) -> int`: Returns the content version format (defaults to `1`).
 * `serialize_key(key: K) -> str`: Converts key to string (defaults to `str(key)`).
 * `deserialize_key(s: str) -> K`: Converts string back to key object.
@@ -58,7 +61,7 @@ Subclasses are expected to override or customize these operations:
 
 ### Operations & Lifecycle Methods
 
-* `add_or_update_ts(key: K, value: V, timestamp: int)`: Adds a key if missing or updates metadata (`created`, `last_seen`, `changed`) and value payload.
+* `add_or_update_ts(key: K, value: V, timestamp: int) -> UpdateStatus`: Adds a key if missing or updates metadata (`created`, `last_seen`, and `changed` if value modified) and value payload. Returns `UpdateStatus`.
 * `has(key: K) -> bool`: Checks whether a given key exists in the registry.
 * `get(key: K) -> V`: Returns the value for `key` without `BookKeeping` metadata. Raises a `KeyError` if the key is not found.
 * `delete(key: K)`: Removes a key-value entry from memory.
@@ -132,17 +135,22 @@ python3 examples/usage_example.py
 ```python
 import json
 from dataclasses import dataclass
-from generic_key_value_registry import Registry, Config, encode, decode
+from generic_key_value_registry import Registry, Config, UpdateStatus, encode, decode
 from contact import Contact
 
 class ContactRegistry(Registry[str, Contact]):
-    def _update_value(self, value: Contact, new_value: Contact):
-        if new_value.first_name:
+    def _update_value(self, value: Contact, new_value: Contact) -> bool:
+        updated = False
+        if new_value.first_name and value.first_name != new_value.first_name:
             value.first_name = new_value.first_name
-        if new_value.last_name:
+            updated = True
+        if new_value.last_name and value.last_name != new_value.last_name:
             value.last_name = new_value.last_name
-        if new_value.age:
+            updated = True
+        if new_value.age and value.age != new_value.age:
             value.age = new_value.age
+            updated = True
+        return updated
 
     def serialize_key(self, key: str) -> str:
         return encode(key)
@@ -175,6 +183,7 @@ config = Config(
 )
 
 registry = ContactRegistry(config)
-registry.add_or_update_ts("user_1", Contact(first_name="Alice", last_name="Smith", age=30), timestamp=1700000000)
+status = registry.add_or_update_ts("user_1", Contact(first_name="Alice", last_name="Smith", age=30), timestamp=1700000000)
+# status == UpdateStatus.ADDED
 registry.save()
 ```

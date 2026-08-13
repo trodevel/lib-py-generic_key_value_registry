@@ -8,9 +8,11 @@ V = TypeVar('V')
 try:
     from .registry_config import Config
     from .registry_book_keeping import BookKeeping
+    from .update_status import UpdateStatus
 except ImportError:
     from registry_config import Config
     from registry_book_keeping import BookKeeping
+    from update_status import UpdateStatus
 
 class Registry(Generic[K, V]):
     def __init__(self, config: Config):
@@ -19,13 +21,14 @@ class Registry(Generic[K, V]):
         if self.config.is_active:
             self._load()
 
-    def _update_value(self, value: V, new_value: V):
+    def _update_value(self, value: V, new_value: V) -> bool:
         raise NotImplementedError
 
-    def add_or_update_ts(self, key: K, value: V, timestamp: int):
+    def add_or_update_ts(self, key: K, value: V, timestamp: int) -> UpdateStatus:
         if key not in self.entries:
             bk = BookKeeping(created=timestamp, last_seen=timestamp, changed=timestamp)
             self.entries[key] = (bk, value)
+            return UpdateStatus.ADDED
         else:
             bk, val = self.entries[key]
             
@@ -34,10 +37,13 @@ class Registry(Generic[K, V]):
             if timestamp > bk.last_seen:
                 bk.last_seen = timestamp
                 
-            self._update_value(val, value)
-            
-            if timestamp > bk.changed:
-                bk.changed = timestamp
+            if self._update_value(val, value):
+                if timestamp > bk.changed:
+                    bk.changed = timestamp
+                return UpdateStatus.EXISTING_UPDATED
+            else:
+                return UpdateStatus.EXISTING_NOT_UPDATED
+
 
     def get_serialization_version(self, value: V) -> int:
         return 1
