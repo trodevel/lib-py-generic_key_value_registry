@@ -58,6 +58,7 @@ class Registry(Generic[K, V]):
         return str(value)
 
     def deserialize_value(self, version: int, s: str) -> V:
+        """Converts string representation back to value object for a given content serialization version."""
         return s  # type: ignore
 
     def serialize_bookkeeping(self, bk: BookKeeping) -> str:
