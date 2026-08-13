@@ -124,7 +124,7 @@ A complete usage example is available in the `examples/` directory:
 Make sure the library path is exported in your environment:
 
 ```bash
-export PYTHONPATH=$PYTHONPATH:/home/serge/Develop/trunk_git/libs/python
+export PYTHONPATH=$PYTHONPATH:/path/to/libs/python
 python3 examples/usage_example.py
 ```
 
