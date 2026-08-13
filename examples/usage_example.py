@@ -54,6 +54,7 @@ def main():
 
     print(f"Has 'user_1': {registry.has('user_1')}")
     print(f"'user_1' contact details: {registry.get('user_1')}")
+    print(f"'user_1' bookkeeping metadata: {registry.get_bookkeeping('user_1')}")
 
 
     print("\n--- 3. Save to Disk ---")
