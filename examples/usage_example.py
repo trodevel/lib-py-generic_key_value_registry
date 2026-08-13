@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 
 # Add package root path so generic_key_value_registry is importable
-sys.path.insert(0, "/home/serge/Develop/trunk_git/libs/python")
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from generic_key_value_registry import Config
 from contact_registry import ContactRegistry
