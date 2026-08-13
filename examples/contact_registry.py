@@ -51,8 +51,8 @@ class ContactRegistry(Registry[str, Contact]):
             age=d.get("age", 0),
         )
 
-    def deserialize_value(self, content_version: int, s: str) -> Contact:
-        if content_version == 1:
+    def deserialize_value(self, version: int, s: str) -> Contact:
+        if version == 1:
             return self._deserialize_value_1(s)
         else:
-            raise ValueError(f"Unknown content version: {content_version}")
+            raise ValueError(f"Unknown version: {version}")
