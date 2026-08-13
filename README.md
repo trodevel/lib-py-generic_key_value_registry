@@ -113,22 +113,61 @@ This guarantees that fields safely remain on the same line and don't break the s
 
 ### Example Usage
 
-To use the Registry, subclass it and implement the initialization and update hooks for your specific type:
+A complete usage example is available in the `examples/` directory:
+
+- `examples/contact.py`: Dataclass defining `Contact` with `first_name`, `last_name`, and `age` attributes.
+- `examples/contact_registry.py`: Implements `ContactRegistry(Registry[str, Contact])` with custom key and value serialization.
+- `examples/usage_example.py`: Demonstration script illustrating instantiation, entry updates, saving to disk, and reloading.
+
+#### Environment Setup & Running the Example
+
+Make sure the library path is exported in your environment:
+
+```bash
+export PYTHONPATH=$PYTHONPATH:/home/serge/Develop/trunk_git/libs/python
+python3 examples/usage_example.py
+```
+
+#### Code Snippet
 
 ```python
-from generic_key_value_registry import Registry, Config
-from counter_stat import CounterStat
+import json
+from dataclasses import dataclass
+from generic_key_value_registry import Registry, Config, encode, decode
+from contact import Contact
 
-class TypeCounterRegistry(Registry[str, CounterStat]):
-    def create_value(self, type_id: int) -> CounterStat:
-        return CounterStat()
+class ContactRegistry(Registry[str, Contact]):
+    def create_value(self, first_name: str = "", last_name: str = "", age: int = 0) -> Contact:
+        return Contact(first_name=first_name, last_name=last_name, age=age)
 
-    def update_value(self, value: CounterStat, timestamp: int, type_id: int):
-        value.counts[type_id] += 1
+    def update_value(self, value: Contact, timestamp: int, first_name: str = None, last_name: str = None, age: int = None):
+        if first_name is not None:
+            value.first_name = first_name
+        if last_name is not None:
+            value.last_name = last_name
+        if age is not None:
+            value.age = age
 
-    def serialize_value(self, value: CounterStat) -> str:
-        import json
-        return json.dumps(value.counts)
+    def serialize_key(self, key: str) -> str:
+        return encode(key)
+
+    def deserialize_key(self, s: str) -> str:
+        return decode(s)
+
+    def serialize_value(self, value: Contact) -> str:
+        return json.dumps({
+            "first_name": value.first_name,
+            "last_name": value.last_name,
+            "age": value.age
+        })
+
+    def deserialize_value(self, s: str) -> Contact:
+        d = json.loads(s)
+        return Contact(
+            first_name=d.get("first_name", ""),
+            last_name=d.get("last_name", ""),
+            age=d.get("age", 0)
+        )
 
 # Instantiation with config
 config = Config(
@@ -139,7 +178,7 @@ config = Config(
     expiration_period_days=30
 )
 
-registry = TypeCounterRegistry(config)
-registry.add_or_update_ts("item_key", timestamp=1700000000, type_id=1)
+registry = ContactRegistry(config)
+registry.add_or_update_ts("user_1", timestamp=1700000000, first_name="Alice", last_name="Smith", age=30)
 registry.save()
 ```
