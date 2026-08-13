@@ -68,7 +68,7 @@ class Registry(Generic[K, V]):
         parts = s.split(' ')
         return BookKeeping(created=int(parts[0]), last_seen=int(parts[1]), changed=int(parts[2]))
 
-    def _load_header(self, lines: list[str]) -> Tuple[int, int]:
+    def _load_header(self, lines: list[str]) -> Tuple[int, int, int]:
         if len(lines) < 4:
             return 0, 0, 0
 
