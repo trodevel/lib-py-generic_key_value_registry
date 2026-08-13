@@ -32,18 +32,29 @@ def main():
     print("\n--- 2. Add and Update Entries ---")
     t1 = 1700000000
     t2 = 1700003600
+    t3 = 1700007200
 
-    registry.add_or_update_ts(
+    status1 = registry.add_or_update_ts(
         "user_1", Contact(first_name="Alice", last_name="Smith", age=30), timestamp=t1
     )
-    registry.add_or_update_ts(
+    print(f"Adding 'user_1': {status1}")
+
+    status2 = registry.add_or_update_ts(
         "user_2", Contact(first_name="Bob", last_name="Jones", age=25), timestamp=t1
     )
-    # Update user_1 age at t2
-    registry.add_or_update_ts("user_1", Contact(age=31), timestamp=t2)
+    print(f"Adding 'user_2': {status2}")
+
+    # Update user_1 age at t2 (value changes)
+    status3 = registry.add_or_update_ts("user_1", Contact(age=31), timestamp=t2)
+    print(f"Updating 'user_1' with new age=31: {status3}")
+
+    # Update user_1 with same age at t3 (no value change -> changed timestamp is not updated)
+    status4 = registry.add_or_update_ts("user_1", Contact(age=31), timestamp=t3)
+    print(f"Updating 'user_1' with identical age: {status4}")
 
     print(f"Has 'user_1': {registry.has('user_1')}")
     print(f"'user_1' contact details: {registry.get('user_1')}")
+
 
     print("\n--- 3. Save to Disk ---")
     registry.save()
