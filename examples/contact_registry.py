@@ -14,25 +14,13 @@ class ContactRegistry(Registry[str, Contact]):
     def __str__(self):
         return f"ContactRegistry: {self.get_all_entries()}"
 
-    def create_value(
-        self, first_name: str = "", last_name: str = "", age: int = 0
-    ) -> Contact:
-        return Contact(first_name=first_name, last_name=last_name, age=age)
-
-    def update_value(
-        self,
-        value: Contact,
-        timestamp: int,
-        first_name: str = None,
-        last_name: str = None,
-        age: int = None,
-    ):
-        if first_name is not None:
-            value.first_name = first_name
-        if last_name is not None:
-            value.last_name = last_name
-        if age is not None:
-            value.age = age
+    def _update_value(self, value: Contact, new_value: Contact):
+        if new_value.first_name:
+            value.first_name = new_value.first_name
+        if new_value.last_name:
+            value.last_name = new_value.last_name
+        if new_value.age:
+            value.age = new_value.age
 
     def serialize_key(self, key: str) -> str:
         return encode(key)

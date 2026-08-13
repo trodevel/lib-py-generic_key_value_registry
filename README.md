@@ -47,8 +47,7 @@ The `add_or_update_ts` method handles the logic for appropriately updating these
 ### Abstract / Hook Methods
 Subclasses are expected to override or customize these operations:
 
-* `create_value(*args, **kwargs) -> V`: Abstract factory method to instantiate a new value object.
-* `update_value(value: V, timestamp: int, *args, **kwargs)`: Abstract method to update an existing value instance.
+* `_update_value(value: V, new_value: V)`: Private method to update an existing value instance.
 * `get_serialization_version(value: V) -> int`: Returns the content version format (defaults to `1`).
 * `serialize_key(key: K) -> str`: Converts key to string (defaults to `str(key)`).
 * `deserialize_key(s: str) -> K`: Converts string back to key object.
@@ -59,7 +58,7 @@ Subclasses are expected to override or customize these operations:
 
 ### Operations & Lifecycle Methods
 
-* `add_or_update_ts(key: K, timestamp: int, *args, **kwargs)`: Adds a key if missing or updates metadata (`created`, `last_seen`, `changed`) and value payload.
+* `add_or_update_ts(key: K, value: V, timestamp: int)`: Adds a key if missing or updates metadata (`created`, `last_seen`, `changed`) and value payload.
 * `has(key: K) -> bool`: Checks whether a given key exists in the registry.
 * `get(key: K) -> V`: Returns the value for `key` without `BookKeeping` metadata. Raises a `KeyError` if the key is not found.
 * `delete(key: K)`: Removes a key-value entry from memory.
@@ -137,16 +136,13 @@ from generic_key_value_registry import Registry, Config, encode, decode
 from contact import Contact
 
 class ContactRegistry(Registry[str, Contact]):
-    def create_value(self, first_name: str = "", last_name: str = "", age: int = 0) -> Contact:
-        return Contact(first_name=first_name, last_name=last_name, age=age)
-
-    def update_value(self, value: Contact, timestamp: int, first_name: str = None, last_name: str = None, age: int = None):
-        if first_name is not None:
-            value.first_name = first_name
-        if last_name is not None:
-            value.last_name = last_name
-        if age is not None:
-            value.age = age
+    def _update_value(self, value: Contact, new_value: Contact):
+        if new_value.first_name:
+            value.first_name = new_value.first_name
+        if new_value.last_name:
+            value.last_name = new_value.last_name
+        if new_value.age:
+            value.age = new_value.age
 
     def serialize_key(self, key: str) -> str:
         return encode(key)
@@ -179,6 +175,6 @@ config = Config(
 )
 
 registry = ContactRegistry(config)
-registry.add_or_update_ts("user_1", timestamp=1700000000, first_name="Alice", last_name="Smith", age=30)
+registry.add_or_update_ts("user_1", Contact(first_name="Alice", last_name="Smith", age=30), timestamp=1700000000)
 registry.save()
 ```

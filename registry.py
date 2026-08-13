@@ -19,18 +19,13 @@ class Registry(Generic[K, V]):
         if self.config.is_active:
             self._load()
 
-    def create_value(self, *args, **kwargs) -> V:
+    def _update_value(self, value: V, new_value: V):
         raise NotImplementedError
 
-    def update_value(self, value: V, timestamp: int, *args, **kwargs):
-        raise NotImplementedError
-
-    def add_or_update_ts(self, key: K, timestamp: int, *args, **kwargs):
+    def add_or_update_ts(self, key: K, value: V, timestamp: int):
         if key not in self.entries:
             bk = BookKeeping(created=timestamp, last_seen=timestamp, changed=timestamp)
-            val = self.create_value(*args, **kwargs)
-            self.update_value(val, timestamp, *args, **kwargs)
-            self.entries[key] = (bk, val)
+            self.entries[key] = (bk, value)
         else:
             bk, val = self.entries[key]
             
@@ -39,7 +34,7 @@ class Registry(Generic[K, V]):
             if timestamp > bk.last_seen:
                 bk.last_seen = timestamp
                 
-            self.update_value(val, timestamp, *args, **kwargs)
+            self._update_value(val, value)
             
             if timestamp > bk.changed:
                 bk.changed = timestamp

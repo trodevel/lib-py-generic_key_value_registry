@@ -5,6 +5,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from generic_key_value_registry import Config
+from contact import Contact
 from contact_registry import ContactRegistry
 
 
@@ -33,13 +34,13 @@ def main():
     t2 = 1700003600
 
     registry.add_or_update_ts(
-        "user_1", timestamp=t1, first_name="Alice", last_name="Smith", age=30
+        "user_1", Contact(first_name="Alice", last_name="Smith", age=30), timestamp=t1
     )
     registry.add_or_update_ts(
-        "user_2", timestamp=t1, first_name="Bob", last_name="Jones", age=25
+        "user_2", Contact(first_name="Bob", last_name="Jones", age=25), timestamp=t1
     )
     # Update user_1 age at t2
-    registry.add_or_update_ts("user_1", timestamp=t2, age=31)
+    registry.add_or_update_ts("user_1", Contact(age=31), timestamp=t2)
 
     print(f"Has 'user_1': {registry.has('user_1')}")
     print(f"'user_1' contact details: {registry.get('user_1')}")
