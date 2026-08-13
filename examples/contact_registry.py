@@ -43,10 +43,16 @@ class ContactRegistry(Registry[str, Contact]):
             }
         )
 
-    def deserialize_value(self, s: str) -> Contact:
+    def _deserialize_value_1(self, s: str) -> Contact:
         d = json.loads(s)
         return Contact(
             first_name=d.get("first_name", ""),
             last_name=d.get("last_name", ""),
             age=d.get("age", 0),
         )
+
+    def deserialize_value(self, content_version: int, s: str) -> Contact:
+        if content_version == 1:
+            return self._deserialize_value_1(s)
+        else:
+            raise ValueError(f"Unknown content version: {content_version}")
