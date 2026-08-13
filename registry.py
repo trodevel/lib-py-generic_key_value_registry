@@ -148,6 +148,11 @@ class Registry(Generic[K, V]):
             raise KeyError(f"Key '{key}' not found in registry")
         return self.entries[key][1]
 
+    def get_bookkeeping(self, key: K) -> BookKeeping:
+        if key not in self.entries:
+            raise KeyError(f"Key '{key}' not found in registry")
+        return self.entries[key][0]
+
     def delete(self, key: K):
         if key in self.entries:
             del self.entries[key]
